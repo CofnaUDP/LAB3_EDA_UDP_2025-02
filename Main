@@ -1,0 +1,396 @@
+import java.io.*;
+import java.util.*;
+
+
+class Movie {
+   String title;
+   String director;
+   String genre;
+   int releaseYear;
+   double rating;
+
+
+   public Movie(String title, String director, String genre, int releaseYear, double rating) {
+       this.title = title;
+       this.director = director;
+       this.genre = genre;
+       this.releaseYear = releaseYear;
+       this.rating = rating;
+   }
+
+
+   public String toString() {
+       return title + " (" + releaseYear + ") - " + rating;
+   }
+}
+
+
+class MovieCatalog {
+   ArrayList<Movie> movies;
+   String sortedByAttribute;
+
+
+   public MovieCatalog(ArrayList<Movie> movies) {
+       this.movies = movies;
+       this.sortedByAttribute = null;
+   }
+
+
+   public ArrayList<Movie> getMoviesByRating(double rating) {
+       ArrayList<Movie> result = new ArrayList<>();
+       if ("rating".equals(sortedByAttribute)) {
+           int left = 0;
+           int right = movies.size() - 1;
+           while (left <= right) {
+               int mid = (left + right) / 2;
+               double midRating = movies.get(mid).rating;
+               if (Math.abs(midRating - rating) < 0.001) {
+                   result.add(movies.get(mid));
+                   int i = mid - 1;
+                   while (i >= 0 && Math.abs(movies.get(i).rating - rating) < 0.001) {
+                       result.add(movies.get(i));
+                       i--;
+                   }
+                   i = mid + 1;
+                   while (i < movies.size() && Math.abs(movies.get(i).rating - rating) < 0.001) {
+                       result.add(movies.get(i));
+                       i++;
+                   }
+                   break;
+               } else if (midRating < rating) {
+                   left = mid + 1;
+               } else {
+                   right = mid - 1;
+               }
+           }
+       } else {
+           for (Movie m : movies) {
+               if (Math.abs(m.rating - rating) < 0.001) {
+                   result.add(m);
+               }
+           }
+       }
+       return result;
+   }
+
+
+   public ArrayList<Movie> getMoviesByRatingRange(double lower, double higher) {
+       ArrayList<Movie> result = new ArrayList<>();
+       for (Movie m : movies) {
+           if (m.rating >= lower && m.rating <= higher) {
+               result.add(m);
+           }
+       }
+       return result;
+   }
+
+
+   public ArrayList<Movie> getMoviesByDirector(String director) {
+       ArrayList<Movie> result = new ArrayList<>();
+       if ("director".equals(sortedByAttribute)) {
+           int left = 0;
+           int right = movies.size() - 1;
+           while (left <= right) {
+               int mid = (left + right) / 2;
+               int cmp = movies.get(mid).director.compareToIgnoreCase(director);
+               if (cmp == 0) {
+                   result.add(movies.get(mid));
+                   int i = mid - 1;
+                   while (i >= 0 && movies.get(i).director.equalsIgnoreCase(director)) {
+                       result.add(movies.get(i));
+                       i--;
+                   }
+                   i = mid + 1;
+                   while (i < movies.size() && movies.get(i).director.equalsIgnoreCase(director)) {
+                       result.add(movies.get(i));
+                       i++;
+                   }
+                   break;
+               } else if (cmp < 0) {
+                   left = mid + 1;
+               } else {
+                   right = mid - 1;
+               }
+           }
+       } else {
+           for (Movie m : movies) {
+               if (m.director.equalsIgnoreCase(director)) {
+                   result.add(m);
+               }
+           }
+       }
+       return result;
+   }
+
+
+   public ArrayList<Movie> getMoviesByGenre(String genre) {
+       ArrayList<Movie> result = new ArrayList<>();
+       for (Movie m : movies) {
+           if (m.genre.equalsIgnoreCase(genre)) {
+               result.add(m);
+           }
+       }
+       return result;
+   }
+
+
+   public ArrayList<Movie> getMoviesByYear(int year) {
+       ArrayList<Movie> result = new ArrayList<>();
+       for (Movie m : movies) {
+           if (m.releaseYear == year) {
+               result.add(m);
+           }
+       }
+       return result;
+   }
+
+
+   public void sortByAlgorithm(String algorithm, String attribute) {
+       if (attribute == null) attribute = "rating";
+       if (algorithm == null) algorithm = "insertionSort";
+
+
+       if (algorithm.equalsIgnoreCase("insertionSort")) {
+           insertionSort(attribute);
+       } else if (algorithm.equalsIgnoreCase("mergeSort")) {
+           movies = mergeSort(movies, attribute);
+       } else if (algorithm.equalsIgnoreCase("radixSort") && attribute.equals("year")) {
+           radixSortByYear();
+       } else {
+           final String attr = attribute;
+           movies.sort((a, b) -> compareMovies(a, b, attr));
+       }
+
+
+       sortedByAttribute = attribute;
+   }
+
+
+   private void insertionSort(String attribute) {
+       for (int i = 1; i < movies.size(); i++) {
+           Movie key = movies.get(i);
+           int j = i - 1;
+           while (j >= 0 && compareMovies(movies.get(j), key, attribute) > 0) {
+               movies.set(j + 1, movies.get(j));
+               j--;
+           }
+           movies.set(j + 1, key);
+       }
+   }
+
+
+   private ArrayList<Movie> mergeSort(ArrayList<Movie> list, String attribute) {
+       if (list.size() <= 1) return list;
+       int mid = list.size() / 2;
+       ArrayList<Movie> left = new ArrayList<>(list.subList(0, mid));
+       ArrayList<Movie> right = new ArrayList<>(list.subList(mid, list.size()));
+       left = mergeSort(left, attribute);
+       right = mergeSort(right, attribute);
+       return merge(left, right, attribute);
+   }
+
+
+   private ArrayList<Movie> merge(ArrayList<Movie> left, ArrayList<Movie> right, String attribute) {
+       ArrayList<Movie> result = new ArrayList<>();
+       int i = 0;
+       int j = 0;
+       while (i < left.size() && j < right.size()) {
+           if (compareMovies(left.get(i), right.get(j), attribute) <= 0) {
+               result.add(left.get(i));
+               i++;
+           } else {
+               result.add(right.get(j));
+               j++;
+           }
+       }
+       while (i < left.size()) {
+           result.add(left.get(i));
+           i++;
+       }
+       while (j < right.size()) {
+           result.add(right.get(j));
+           j++;
+       }
+       return result;
+   }
+
+
+   private void radixSortByYear() {
+       int max = 0;
+       for (Movie m : movies) {
+           if (m.releaseYear > max) max = m.releaseYear;
+       }
+       for (int exp = 1; max / exp > 0; exp *= 10) {
+           countingSortYear(exp);
+       }
+   }
+
+
+   private void countingSortYear(int exp) {
+       ArrayList<Movie> output = new ArrayList<>(Collections.nCopies(movies.size(), (Movie) null));
+       int[] count = new int[10];
+       for (Movie m : movies) {
+           int index = (m.releaseYear / exp) % 10;
+           count[index]++;
+       }
+       for (int i = 1; i < 10; i++) count[i] += count[i - 1];
+       for (int i = movies.size() - 1; i >= 0; i--) {
+           int index = (movies.get(i).releaseYear / exp) % 10;
+           output.set(count[index] - 1, movies.get(i));
+           count[index]--;
+       }
+       movies = new ArrayList<>(output);
+   }
+
+
+   private int compareMovies(Movie a, Movie b, String attribute) {
+       if (attribute.equals("genre")) return a.genre.compareToIgnoreCase(b.genre);
+       if (attribute.equals("director")) return a.director.compareToIgnoreCase(b.director);
+       if (attribute.equals("year")) return a.releaseYear - b.releaseYear;
+       return Double.compare(a.rating, b.rating);
+   }
+}
+
+
+public class Main {
+   public static void main(String[] args) {
+       System.out.println("Ruta de ejecución: " + System.getProperty("user.dir"));
+       ArrayList<Movie> allMovies = loadMovies("src/imdb_top_1000.csv");
+       System.out.println("Películas cargadas: " + allMovies.size());
+
+
+       System.out.println("\nExperimento 1: Ordenamiento");
+       for (int n = 100; n <= 1000; n += 100) {
+           ArrayList<Movie> subset = new ArrayList<>(allMovies.subList(0, n));
+
+
+           MovieCatalog c1 = new MovieCatalog(new ArrayList<>(subset));
+           long t1 = System.nanoTime();
+           c1.sortByAlgorithm("insertionSort", "rating");
+           long t2 = System.nanoTime();
+
+
+           MovieCatalog c2 = new MovieCatalog(new ArrayList<>(subset));
+           long t3 = System.nanoTime();
+           c2.sortByAlgorithm("mergeSort", "rating");
+           long t4 = System.nanoTime();
+
+
+           MovieCatalog c3 = new MovieCatalog(new ArrayList<>(subset));
+           long t5 = System.nanoTime();
+           c3.sortByAlgorithm("radixSort", "year");
+           long t6 = System.nanoTime();
+
+
+           System.out.println("n=" + n + " | Insertion: " + (t2 - t1) + " ns | Merge: " + (t4 - t3) + " ns | Radix: " + (t6 - t5) + " ns");
+       }
+
+
+       System.out.println("\nExperimento 2: Búsqueda");
+       String[] directors = {"Christopher Nolan", "Quentin Tarantino", "Steven Spielberg", "Martin Scorsese", "Ridley Scott"};
+
+
+       for (int n = 100; n <= 1000; n += 100) {
+           ArrayList<Movie> subset = new ArrayList<>(allMovies.subList(0, n));
+           MovieCatalog catalog = new MovieCatalog(subset);
+
+
+           long linealTime = 0;
+           long binariaTime = 0;
+
+
+           for (String dir : directors) {
+               long startL = System.nanoTime();
+               for (int i = 0; i < 1000; i++) catalog.getMoviesByDirector(dir);
+               long endL = System.nanoTime();
+               linealTime += (endL - startL);
+
+
+               catalog.sortByAlgorithm("mergeSort", "director");
+               long startB = System.nanoTime();
+               for (int i = 0; i < 1000; i++) catalog.getMoviesByDirector(dir);
+               long endB = System.nanoTime();
+               binariaTime += (endB - startB);
+           }
+
+
+           System.out.println("n=" + n + " | Promedio Lineal: " + (linealTime / directors.length) + " ns | Promedio Binaria: " + (binariaTime / directors.length) + " ns");
+       }
+   }
+
+
+   private static ArrayList<Movie> loadMovies(String path) {
+       ArrayList<Movie> list = new ArrayList<>();
+       try (BufferedReader br = new BufferedReader(new FileReader(path))) {
+           String header = br.readLine();
+           if (header == null) return list;
+
+
+           String[] cols = header.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
+           Map<String, Integer> idx = new HashMap<>();
+           for (int i = 0; i < cols.length; i++) {
+               idx.put(cols[i].trim().replace("\"", ""), i);
+           }
+
+
+           String line;
+           while ((line = br.readLine()) != null) {
+               String[] p = line.split(",(?=(?:[^\"]*\"[^\"]*\")*[^\"]*$)", -1);
+
+
+               String title = getSafe(p, idx.getOrDefault("Series_Title", 1));
+               String genre = getSafe(p, idx.getOrDefault("Genre", 5));
+               String director = getSafe(p, idx.getOrDefault("Director", 9));
+               String yearStr = getSafe(p, idx.getOrDefault("Released_Year", 2));
+               String ratingStr = getSafe(p, idx.getOrDefault("IMDB_Rating", 6));
+
+
+               if (title.isEmpty()) continue;
+
+
+               int year = parseYearSafe(yearStr);
+               double rating = parseDoubleSafe(ratingStr);
+
+
+               list.add(new Movie(title, director, genre, year, rating));
+           }
+       } catch (IOException e) {
+           System.out.println("Error leyendo CSV en: " + new File(path).getAbsolutePath());
+           System.out.println(e.getMessage());
+       }
+       return list;
+   }
+
+
+   private static String getSafe(String[] arr, int i) {
+       if (i < 0 || i >= arr.length) return "";
+       String s = arr[i];
+       if (s == null) return "";
+       s = s.trim();
+       if (s.startsWith("\"") && s.endsWith("\"") && s.length() >= 2) {
+           s = s.substring(1, s.length() - 1);
+       }
+       return s;
+   }
+
+
+   private static int parseYearSafe(String s) {
+       // Deja solo dígitos iniciales, e.g., "1994", "1994–" -> 1994
+       String digits = s.replaceAll("[^0-9]", "");
+       if (digits.isEmpty()) return 0;
+       try {
+           return Integer.parseInt(digits);
+       } catch (Exception e) {
+           return 0;
+       }
+   }
+
+
+   private static double parseDoubleSafe(String s) {
+       try {
+           return Double.parseDouble(s.trim());
+       } catch (Exception e) {
+           return 0.0;
+       }
+   }
+}
